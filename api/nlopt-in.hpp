@@ -463,6 +463,7 @@ namespace nlopt {
     NLOPT_GETSET(double, xtol_rel)
     NLOPT_GETSET_VEC(xtol_abs)
     NLOPT_GETSET(int, maxeval)
+    NLOPT_GETSET(int, maxiter)
     NLOPT_GETSET(double, maxtime)
 
     NLOPT_GETSET(int, force_stop)

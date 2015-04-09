@@ -54,6 +54,7 @@ GETSET_EXCEPT(ftol_abs, double)
 GETSET_EXCEPT(xtol_rel, double)
 GETSETVEC_EXCEPT(xtol_abs)
 GETSET_EXCEPT(maxeval, int)
+GETSET_EXCEPT(maxiter, int)
 GETSET_EXCEPT(maxtime, double)
 GETSET_EXCEPT(force_stop, int)
 
