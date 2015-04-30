@@ -69,6 +69,7 @@ nlopt_opt NLOPT_STDCALL nlopt_create(nlopt_algorithm algorithm, unsigned n)
 	  opt->algorithm = algorithm;
 	  opt->n = n;
 	  opt->f = NULL; opt->f_data = NULL; opt->pre = NULL;
+      opt->cb = NULL;
 	  opt->maximize = 0;
 	  opt->munge_on_destroy = opt->munge_on_copy = NULL;
 
@@ -255,6 +256,16 @@ nlopt_result NLOPT_STDCALL nlopt_set_max_objective(nlopt_opt opt,
 						   nlopt_func f, void *f_data)
 {
      return nlopt_set_precond_max_objective(opt, f, NULL, f_data);
+}
+
+nlopt_result NLOPT_STDCALL nlopt_set_callback(nlopt_opt opt,
+						   nlopt_cbfunc cb, void *f_data)
+{
+    if (opt){
+        opt->cb = cb;
+        return NLOPT_SUCCESS;
+    }
+    return NLOPT_INVALID_ARGS;
 }
 
 /*************************************************************************/
