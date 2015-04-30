@@ -156,6 +156,25 @@ static double func_python(unsigned n, const double *x, double *grad, void *f)
   return val;
 }
 
+static void cbfunc_python(unsigned n, unsigned iter, const double *x, void *f)
+{
+  npy_intp sz = npy_intp(n), sz0 = 0, stride1 = sizeof(double);
+  PyObject *xpy = PyArray_New(&PyArray_Type, 1, &sz, NPY_DOUBLE, &stride1,
+			      const_cast<double*>(x), // not NPY_WRITEABLE
+			      0, NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_ALIGNED, NULL);
+
+  PyObject *arglist = Py_BuildValue("OO", xpy);
+  PyObject *result = PyEval_CallObject((PyObject *) f, arglist);
+
+  Py_XDECREF(result);
+  Py_DECREF(arglist);
+  Py_DECREF(xpy);
+
+  if (PyErr_Occurred()) {
+    throw nlopt::forced_stop(); // just stop, don't call PyErr_Clear()
+  }
+}
+
 static void mfunc_python(unsigned m, double *result,
 			 unsigned n, const double *x, double *grad, void *f)
 {
@@ -192,6 +211,16 @@ static void mfunc_python(unsigned m, double *result,
   $4 = dup_pyfunc;
 }
 %typecheck(SWIG_TYPECHECK_POINTER)(nlopt::func f, void *f_data, nlopt_munge md, nlopt_munge mc) {
+  $1 = PyCallable_Check($input);
+}
+
+%typemap(in)(nlopt::cbfunc cb, void *f_data, nlopt_munge md, nlopt_munge mc) {
+  $1 = cbfunc_python;
+  $2 = dup_pyfunc((void*) $input);
+  $3 = free_pyfunc;
+  $4 = dup_pyfunc;
+}
+%typecheck(SWIG_TYPECHECK_POINTER)(nlopt::cbfunc cb, void *f_data, nlopt_munge md, nlopt_munge mc) {
   $1 = PyCallable_Check($input);
 }
 
