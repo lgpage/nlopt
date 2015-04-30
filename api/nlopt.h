@@ -62,6 +62,11 @@ typedef double (*nlopt_func)(unsigned n, const double *x,
 			     double *gradient, /* NULL if not needed */
 			     void *func_data);
 
+typedef void (*nlopt_cbfunc)(unsigned n,
+                             unsigned iter,
+                             const double *x,
+			                 void *func_data);
+
 typedef void (*nlopt_mfunc)(unsigned m, double *result,
 			    unsigned n, const double *x,
 			     double *gradient, /* NULL if not needed */
@@ -202,6 +207,9 @@ NLOPT_EXTERN(nlopt_result) nlopt_optimize(nlopt_opt opt, double *x,
 NLOPT_EXTERN(nlopt_result) nlopt_set_min_objective(nlopt_opt opt, nlopt_func f, 
 						  void *f_data);
 NLOPT_EXTERN(nlopt_result) nlopt_set_max_objective(nlopt_opt opt, nlopt_func f, 
+						  void *f_data);
+
+NLOPT_EXTERN(nlopt_result) nlopt_set_callback(nlopt_opt opt, nlopt_cbfunc cb,
 						  void *f_data);
 
 NLOPT_EXTERN(nlopt_result) nlopt_set_precond_min_objective(nlopt_opt opt, nlopt_func f, nlopt_precond pre, void *f_data);
