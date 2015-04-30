@@ -153,7 +153,8 @@ nlopt_result mma_minimize(unsigned n, nlopt_func f, void *f_data,
 			  double *x, /* in: initial guess, out: minimizer */
 			  double *minf,
 			  nlopt_stopping *stop,
-			  nlopt_opt dual_opt)
+			  nlopt_opt dual_opt,
+              nlopt_cbfunc cb)
 {
      nlopt_result ret = NLOPT_SUCCESS;
      double *xcur, rho, *sigma, *dfdx, *dfdx_cur, *xprev, *xprevprev, fcur;
@@ -372,7 +373,11 @@ nlopt_result mma_minimize(unsigned n, nlopt_func f, void *f_data,
 	  if (nlopt_stop_x(stop, xcur, xprev))
 	       ret = NLOPT_XTOL_REACHED;
 	  if (ret != NLOPT_SUCCESS) goto done;
-	       
+
+      /* callback function. */
+      cb(n, k, xcur, f_data);
+      /* XXX test only, need to eliminate recusive cb call */
+
 	  /* update rho and sigma for iteration k+1 */
 	  rho = MAX(0.1 * rho, MMA_RHOMIN);
 	  if (mma_verbose)
