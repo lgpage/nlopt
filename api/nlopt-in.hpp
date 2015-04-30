@@ -48,8 +48,9 @@ namespace nlopt {
   // GEN_ENUMS_HERE
   //////////////////////////////////////////////////////////////////////
 
-  typedef nlopt_func func; // nlopt::func synoynm
-  typedef nlopt_mfunc mfunc; // nlopt::mfunc synoynm
+  typedef nlopt_func func;     // nlopt::func synoynm
+  typedef nlopt_cbfunc cbfunc; // nlopt::cbfunc synoynm
+  typedef nlopt_mfunc mfunc;   // nlopt::mfunc synoynm
 
   // alternative to nlopt_func that takes std::vector<double>
   // ... unfortunately requires a data copy
@@ -90,6 +91,7 @@ namespace nlopt {
       opt *o;
       mfunc mf; func f; void *f_data;
       vfunc vf;
+      cbfunc cb;
       nlopt_munge munge_destroy, munge_copy; // non-NULL for SWIG wrappers
     } myfunc_data;
 
@@ -102,6 +104,7 @@ namespace nlopt {
       }
       return NULL;
     }
+
     static void *dup_myfunc_data(void *p) {
       myfunc_data *d = (myfunc_data *) p;
       if (d) {
@@ -140,6 +143,26 @@ namespace nlopt {
 	{ d->o->forced_stop_reason = NLOPT_FAILURE; }
       d->o->force_stop(); // stop gracefully, opt::optimize will re-throw
       return HUGE_VAL;
+    }
+
+    // nlopt_cbfunc wrapper that catches exceptions
+    static void mycbfunc(unsigned n, unsigned iter, const double *x, void *d_) {
+      myfunc_data *d = reinterpret_cast<myfunc_data*>(d_);
+      try {
+        d->cb(n, iter, x, d->f_data);
+        return;
+      }
+      catch (std::bad_alloc&)
+	{ d->o->forced_stop_reason = NLOPT_OUT_OF_MEMORY; }
+      catch (std::invalid_argument&)
+	{ d->o->forced_stop_reason = NLOPT_INVALID_ARGS; }
+      catch (roundoff_limited&)
+	{ d->o->forced_stop_reason = NLOPT_ROUNDOFF_LIMITED; }
+      catch (forced_stop&)
+	{ d->o->forced_stop_reason = NLOPT_FORCED_STOP; }
+      catch (...)
+	{ d->o->forced_stop_reason = NLOPT_FAILURE; }
+      d->o->force_stop(); // stop gracefully, opt::optimize will re-throw
     }
 
     // nlopt_mfunc wrapper that catches exceptions
@@ -303,9 +326,18 @@ namespace nlopt {
       mythrow(nlopt_set_max_objective(o, myvfunc, d)); // d freed via o
       alloc_tmp();
     }
+    // Set the callback function
+    void set_callback(cbfunc cb, void *f_data) {
+      myfunc_data *d = new myfunc_data;
+      if (!d) throw std::bad_alloc();
+      d->o = this; d->cb = cb; d->f_data = f_data; d->mf = NULL; d->vf = NULL;
+      d->munge_destroy = d->munge_copy = NULL;
+      mythrow(nlopt_set_callback(o, mycbfunc, d)); // d freed via o
+    }
 
     // for internal use in SWIG wrappers -- variant that
     // takes ownership of f_data, with munging for destroy/copy
+    // Set the objective function
     void set_min_objective(func f, void *f_data,
 			   nlopt_munge md, nlopt_munge mc) {
       myfunc_data *d = new myfunc_data;
@@ -322,9 +354,17 @@ namespace nlopt {
       d->munge_destroy = md; d->munge_copy = mc;
       mythrow(nlopt_set_max_objective(o, myfunc, d)); // d freed via o
     }
+    // Set the callback function
+    void set_callback(cbfunc cb, void *f_data,
+			   nlopt_munge md, nlopt_munge mc) {
+      myfunc_data *d = new myfunc_data;
+      if (!d) throw std::bad_alloc();
+      d->o = this; d->cb = cb; d->f_data = f_data; d->mf = NULL; d->vf = NULL;
+      d->munge_destroy = md; d->munge_copy = mc;
+      mythrow(nlopt_set_callback(o, mycbfunc, d)); // d freed via o
+    }
 
     // Nonlinear constraints:
-
     void remove_inequality_constraints() {
       nlopt_result ret = nlopt_remove_inequality_constraints(o);
       mythrow(ret);
